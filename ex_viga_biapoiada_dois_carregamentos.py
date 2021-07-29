@@ -12,12 +12,14 @@ fix_1 = Fixação(0, 0, fixa_x=True, fixa_y=True)
 fix_2 = Fixação(5, 0, fixa_y=True)
 
 # Instânciando um carregamento pontual de 2KN na metade da viga
-f_1 = CarregamentoPontual(2.5, 0, 0, -2000)
+f_1 = CarregamentoPontual(2, 0, 0, -2000)
+f_2 = CarregamentoPontual(3, 0, 0, 2000)
 
 # Adicionando as fixações e carregamentos à barra
 barra.adicionar_fixação(fix_1)
 barra.adicionar_fixação(fix_2)
 barra.adicionar_carregamento(f_1)
+barra.adicionar_carregamento(f_2)
 
 # Representação da estrutura construída
 barra.esquema()

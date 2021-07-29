@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt 
 import math
 from sympy import *
+from sympy.solvers.ode.systems import *
 from matplotlib.patches import Arc, RegularPolygon
 
 
@@ -259,6 +260,94 @@ class Momento:
             y_seta = self.y + (raio/2)*np.sin(np.deg2rad(40))
 
             ax.add_patch(RegularPolygon((x_seta, y_seta), 3, raio/9, rad(50+60), color=cor))
+
+
+class EsforçoCortante:
+    """
+    Essa classe representa esforços cortantes e suas principais características.
+    """
+
+    def __init__(self, func, intervalo, expr):
+        """
+        :func (function): função que mapeia uma posição na barra a um esforço cortante.
+        :intervalo (array): intervalo de posições da barra que o esforço atua.
+        :expr (object): expressão do esforço cortante.
+
+        Método que inicializa objetos do tipo EsforçoCortante.
+        """
+
+        self.func = func
+        self.intervalo = intervalo
+        self.expr = expr
+
+    def esquema(self, ax, cor = 'red'):
+        """
+        :ax (object): eixo para plotar o esforço cortante.
+
+        Método responsável pela representação gráfica do esforço cortante.
+        """
+        
+        Q = self.func(self.intervalo)
+
+        ax.plot(self.intervalo, Q, c=cor, label='Esforço Cortante')
+
+
+class MomentoFletor:
+    """
+    Essa classe representa momentos fletores e suas principais características.
+    """
+
+    def __init__(self, func, intervalo, expr):
+        """
+        :func (function): função que mapeia uma posição na barra a um momento fletor.
+        :intervalo (array): intervalo de posições da barra que o momento atua.
+        :expr (object): expressão do momento.
+
+        Método que inicializa objetos do tipo MomentoFletor.
+        """
+
+        self.func = func
+        self.intervalo = intervalo
+        self.expr = expr
+
+    def esquema(self, ax, cor = 'blue'):
+        """
+        :ax (object): eixo para plotar o momento fletor.
+
+        Método responsável pela representação gráfica do momento fletor.
+        """
+
+        M = self.func(self.intervalo)
+
+        ax.plot(self.intervalo, M, c=cor, label='Momento Fletor')
+
+
+class Deflexão:
+    """
+    Essa classe representa deflexões e suas principais características.
+    """
+
+    def __init__(self, func, intervalo):
+        """
+        :func (function): função que mapeia uma posição na barra a uma deflexão.
+        :intervalo (array): intervalo de posições da barra que a deflexão atua.
+
+        Método que inicializa objetos do tipo Deflexão.
+        """
+
+        self.func = func
+        self.intervalo = intervalo
+
+    def esquema(self, ax, estilo='--', cor = 'black'):
+        """
+        :ax (object): eixo para plotar a delfexão.
+
+        Método responsável pela representação gráfica da deflexão.
+        """
+
+        d = self.func(self.intervalo)
+
+        ax.plot(self.intervalo, d, estilo, c=cor)
         
 
 class Barra:
@@ -266,13 +355,14 @@ class Barra:
     Essa classe representa barras e suas principais características.
     """
 
-    def __init__(self, x_inicio, y_inicio, inclinação, comprimento, seção):
+    def __init__(self, x_inicio, y_inicio, inclinação, comprimento, seção, E):
         """
         :x_inicio (float): posição de inicio da barra no eixo x.
         :y_inicio (float): posição de inicio da barra no eixo y.
         :inclinação (float): inclinação da barra em radianos.
         :comprimento (float): comprimento da barra em metros.
         :seção (object): objeto de seção transversal.
+        :E (float): módulo de elasticidade.
 
         Método que inicializa objetos do tipo Barra.
         """
@@ -285,10 +375,15 @@ class Barra:
         self.inclinação = inclinação
         self.comprimento = comprimento 
         self.seção = seção
+        self.E = E
+
+        self.I_seção = self.seção.I
 
         self.fixações = []
         self.carregamentos = []
         self.esforços_externos = []
+        self.esforços_internos = []
+        self.deflexões = []
 
         self.t = np.arange(0, self.comprimento, 0.0001)
 
@@ -380,29 +475,67 @@ class Barra:
 
         plt.plot(self.x, self.y, estilo, c=cor)
 
-        plt.axis('equal')
-        plt.axis('off')
-
         ax.spines['left'].set_position(('data', 0))
         ax.spines['right'].set_color('none')
         ax.spines['bottom'].set_position(('data', 0))
         ax.spines['top'].set_color('none')
 
-        for carregamento in self.carregamentos:
-
-            carregamento.esquema(ax)
-
         if self.esforços_externos == []:
+
+            plt.axis('equal')
+            plt.axis('off')
+
+            for carregamento in self.carregamentos:
+
+                carregamento.esquema(ax)
 
             for fixação in self.fixações:
 
                 fixação.esquema(ax)
 
-        else:
+        elif self.esforços_internos == []:
+
+            plt.axis('equal')
+            plt.axis('off')
+
+            for carregamento in self.carregamentos:
+
+                carregamento.esquema(ax)
 
             for esforço_externo in self.esforços_externos:
                 
                 esforço_externo.esquema(ax, cor='blue', raio=self.comprimento/15)        
+
+        elif self.deflexões == []:
+
+            plt.axis('off')
+            plt.tight_layout()
+            
+            for fixação in self.fixações:
+
+                fixação.esquema(ax)
+
+            for esforço_interno in self.esforços_internos:
+                
+                esforço_interno.esquema(ax)        
+
+            
+            handles, labels = plt.gca().get_legend_handles_labels()
+            by_label = dict(zip(labels, handles))
+            
+            plt.legend(by_label.values(), by_label.keys(), frameon=False)
+
+        else:
+            
+            plt.axis('off')
+            
+            for fixação in self.fixações:
+
+                fixação.esquema(ax)
+
+            for deflexão in self.deflexões:
+                
+                deflexão.esquema(ax)            
 
         plt.show()
 
@@ -508,16 +641,6 @@ class Barra:
         Método responsável pela solução dos esforços internos aplicados nas fixações.
         """
 
-        plt.figure('Esquema da Barra')
-        ax = plt.subplot(111)
-
-        plt.axis('off')
-
-        ax.spines['left'].set_position(('data', 0))
-        ax.spines['right'].set_color('none')
-        ax.spines['bottom'].set_position(('data', 0))
-        ax.spines['top'].set_color('none')
-
         if self.esforços_externos == []:
 
             self.solução_esforços_externos()
@@ -563,43 +686,80 @@ class Barra:
 
                 expr_equilibrio_y = utilities.lambdify('x', sympify(equilibrio_y))
                 expr_equilibrio_M = utilities.lambdify('x', sympify(equilibrio_M))
+        
+                self.esforços_internos += [EsforçoCortante(expr_equilibrio_y, t, sympify(equilibrio_y))]
+                self.esforços_internos += [MomentoFletor(expr_equilibrio_M, t, sympify(equilibrio_M))]
+
+    def solução_deflexões(self):
+        """
+        Método responsável pela solução das deflexões na barra.
+        """
+
+        if self.esforços_externos == []:
+
+            self.solução_esforços_externos()
+
+        if self.esforços_internos == []:
+
+            self.solução_esforços_internos()
+
+        momentos_fletores = [esforço_interno for esforço_interno in self.esforços_internos if isinstance(esforço_interno, MomentoFletor)]
+
+        deflexões = [Function('f_'+str(i)) for i in range(len(momentos_fletores))]
+
+        resultados = []
+        expr_momentos_fletores = []
+        condições_iniciais_equações = []
+
+        flag_inicio = True 
+
+        for i, esforço_interno in enumerate(momentos_fletores):
+
+            f = deflexões[i]
+
+            self.I_seção = 0.1
+
+            expr_momento_fletor = Derivative(f('x'), ('x',2)) + (esforço_interno.expr/(self.E*self.I_seção))
             
-                Q = expr_equilibrio_y(t)                
-                M = expr_equilibrio_M(t)
+            expr_momentos_fletores += [Eq(0, expr_momento_fletor)]
+
+        resultados_equações = dsolve(expr_momentos_fletores)
+
+        resultados_expr = [sympify(resultado.rhs) for resultado in resultados_equações]
+
+        for i, esforço_interno in enumerate(momentos_fletores):
+
+            f = resultados_expr[i]
+
+            for fixação in self.fixações:
+
+                if math.isclose(min(esforço_interno.intervalo), fixação.x, abs_tol=0.1) or math.isclose(max(esforço_interno.intervalo), fixação.x, abs_tol=0.1) or min(esforço_interno.intervalo) <= fixação.x <= max(esforço_interno.intervalo):
+
+                    if fixação.fixa_y:
+
+                        condições_iniciais_equações += [Eq(f.subs('x', fixação.x), 0)]
+                    
+                    if fixação.fixa_rot:
+
+                        condições_iniciais_equações += [Eq(diff(f, 'x').subs('x',fixação.x), 0)]
+            
+            if not flag_inicio:
                 
-                try:
+                f_anterior = resultados_expr[i-1]
 
-                    plt.plot(t, M, c='blue', label='Momento Fletor')
+                condições_iniciais_equações += [Eq(f.subs('x', min(esforço_interno.intervalo)), f_anterior.subs('x', min(esforço_interno.intervalo)))]
 
-                except:
+                condições_iniciais_equações += [Eq(diff(f, 'x').subs('x', min(esforço_interno.intervalo)), diff(f_anterior, 'x').subs('x', min(esforço_interno.intervalo)))]
 
-                    M = M+0*t
+            flag_inicio = False
 
-                    plt.plot(t, M, c='blue', label='Momento Fletor')
+        constantes = solve(condições_iniciais_equações)
 
-                try:
+        resultados_expr = [i.subs(constantes) for i in resultados_expr]
+        resultados = [utilities.lambdify('x', sympify(resultado)) for resultado in resultados_expr]
 
-                    plt.plot(t, Q, c='red', label='Esforço Cortante')
+        for i, resultado in enumerate(resultados): 
+            
+            intervalo = momentos_fletores[i].intervalo
 
-                except:
-
-                    Q = Q+0*t
-
-                    plt.plot(t, Q, c='red', label='Esforço Cortante')
-
-
-        for fixação in self.fixações:
-
-            fixação.esquema(ax)
-
-        plt.plot(self.x, self.y, '-', c='black')
-
-        handles, labels = plt.gca().get_legend_handles_labels()
-        by_label = dict(zip(labels, handles))
-
-        plt.legend(by_label.values(), by_label.keys(), bbox_to_anchor=(1.05, 0.5), loc='center left', frameon=False)
-
-        plt.tight_layout()
-        plt.show()
-
-
+            self.deflexões += [Deflexão(resultado, intervalo)]

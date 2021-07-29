@@ -5,7 +5,7 @@ from bibstruct import *
 ret = Retangulo(0.2, 0.1)
 
 # Definindo uma barra de 5 metros com seção transversal retângular
-barra = Barra(0, 0, 0, 5, ret)
+barra = Barra(0, 0, 0, 5, ret, 2*10**11)
 
 # Instânciando a fixação na extremidade da viga
 fix_1 = Fixação(0, 0, fixa_x=True, fixa_y=True, fixa_rot=True)
@@ -26,5 +26,14 @@ barra.solução_esforços_externos()
 # Representação da estrutura com os esforços externos
 barra.esquema()
 
-# Representação da estrutura com os esforços internos
+# Solucionando os esforços internos
 barra.solução_esforços_internos()
+
+# Representação da estrutura com os esforços internos
+barra.esquema()
+
+# Solucionando as deflexões
+barra.solução_deflexões()
+
+# Representação da estrutura com as deflexões
+barra.esquema()
